@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "visualize-loss-landscape-lora"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+torch = "^2.2.1"
+matplotlib = "^3.8.3"
+numpy = "^1.26.4"
+transformers = "^4.38.2"
+tqdm = "^4.66.2"
+datasets = "^2.18.0"
+pytorch-lightning = "^2.2.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
