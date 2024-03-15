@@ -82,9 +82,13 @@ def dataset_preparation():
 if __name__ == "__main__":
 
     model_path = "opt-125m"
-    model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=2, local_files_only=True)
-    model = model.to("cuda")
-    tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
+    if not os.path.exists(model_path):
+        model = AutoModelForSequenceClassification.from_pretrained("facebook/opt-125m", num_labels=2)
+        tokenizer = AutoTokenizer.from_pretrained("facebook/opt-125m")
+    else:
+        model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=2, local_files_only=True)
+        tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
+        
     imdb_dataset = dataset_preparation()
     train_loader, val_loader, test_loader = prepare_data_loaders(imdb_dataset)
     # Limit the train_loader to 10 batches
