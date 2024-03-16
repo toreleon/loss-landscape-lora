@@ -50,9 +50,9 @@ def prepare_data_loaders(imdb_dataset, batch_size=16):
     val_dataset = IMDBDataset(imdb_dataset["validation"], tokenizer)
     test_dataset = IMDBDataset(imdb_dataset["test"], tokenizer)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=16)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=16)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=16)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     return train_loader, val_loader, test_loader
 
@@ -88,9 +88,9 @@ if __name__ == "__main__":
     else:
         model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=2, local_files_only=True)
         tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
-        
+    model = model.to("cuda")
     imdb_dataset = dataset_preparation()
-    train_loader, val_loader, test_loader = prepare_data_loaders(imdb_dataset)
+    train_loader, val_loader, test_loader = prepare_data_loaders(imdb_dataset)\
     # Limit the train_loader to 10 batches
     train_loader = list(train_loader)
     train_loader = train_loader[:30]

@@ -29,11 +29,15 @@ def get_random_direction(model: nn.Module, filter_normalize: bool = True) -> Lis
     return directions
 
 
-def compute_loss_over_dimensions(model: nn.Module, criterion: nn.Module, dataloader: torch.utils.data.DataLoader, directions: List[torch.Tensor], alphas: List[float], dimensions: int = 2) -> torch.Tensor:
+def compute_loss_over_dimensions(model: nn.Module, criterion: nn.Module, dataloader: DataLoader, directions: List[torch.Tensor], alphas: List[float], dimensions: int = 2) -> torch.Tensor:
     """
     Compute the average loss over 1D, 2D, or 3D defined by directions and alphas using data from a DataLoader.
+    This version is adapted for multi-GPU environments using DataParallel.
     """
     assert dimensions in [1, 2, 3], "Only 1D, 2D, and 3D computations are supported."
+    
+    # Wrap the model with DataParallel
+    model = nn.DataParallel(model).cuda()
     
     # Initialize the losses tensor based on the number of dimensions
     if dimensions == 1:
@@ -48,17 +52,17 @@ def compute_loss_over_dimensions(model: nn.Module, criterion: nn.Module, dataloa
             total_loss = 0
             total_samples = 0
             for batch in dataloader:
-                # Load batch to device
-                batch = {k: v.to("cuda") for k, v in batch.items()}
+                # Ensure batch data is on the correct device
+                batch = {k: v.cuda() for k, v in batch.items()}  # Assuming all tensors in the batch
                 # Unpack the batch
                 input_ids = batch['input_ids']
                 attention_mask = batch['attention_mask']
                 labels = batch['labels']
                 # Perturb model based on the number of dimensions
                 if dimensions >= 1:
-                    perturb_model(model, directions[0], alpha)
+                    perturb_model(model.module, directions[0], alpha)  # Access the original model
                 if dimensions > 1:
-                    perturb_model(model, directions[1], beta)
+                    perturb_model(model.module, directions[1], beta)  # Access the original model
                 
                 # Compute loss
                 outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
@@ -67,9 +71,9 @@ def compute_loss_over_dimensions(model: nn.Module, criterion: nn.Module, dataloa
                 total_samples += len(labels)
                 # Reset model to its original state
                 if dimensions >= 1:
-                    perturb_model(model, directions[0], -alpha)
+                    perturb_model(model.module, directions[0], -alpha)  # Access the original model
                 if dimensions > 1:
-                    perturb_model(model, directions[1], -beta)
+                    perturb_model(model.module, directions[1], -beta)  # Access the original model
             avg_loss = total_loss / total_samples
             if dimensions == 1:
                 losses[i] = avg_loss
