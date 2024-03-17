@@ -11,13 +11,13 @@ def compute_accuracy(model, data_loader, device):
     correct_pred, num_examples = 0, 0
     with torch.no_grad():
         for features, targets in data_loader:
-            features = features.view(-1, 28*28).to(device)
+            features = features.view(-1, 28 * 28).to(device)
             targets = targets.to(device)
             logits = model(features)
             _, predicted_labels = torch.max(logits, 1)
             num_examples += targets.size(0)
             correct_pred += (predicted_labels == targets).sum()
-        return correct_pred.float()/num_examples * 100
+        return correct_pred.float() / num_examples * 100
 
 
 def train(num_epochs, model, optimizer, train_loader, device):
@@ -27,7 +27,7 @@ def train(num_epochs, model, optimizer, train_loader, device):
         model.train()
         for batch_idx, (features, targets) in enumerate(train_loader):
 
-            features = features.view(-1, 28*28).to(device)
+            features = features.view(-1, 28 * 28).to(device)
             targets = targets.to(device)
 
             # FORWARD AND BACK PROP
@@ -42,18 +42,20 @@ def train(num_epochs, model, optimizer, train_loader, device):
 
             # LOGGING
             if not batch_idx % 400:
-                print('Epoch: %03d/%03d | Batch %03d/%03d | Loss: %.4f'
-                      % (epoch+1, num_epochs, batch_idx,
-                          len(train_loader), loss))
+                print(
+                    "Epoch: %03d/%03d | Batch %03d/%03d | Loss: %.4f"
+                    % (epoch + 1, num_epochs, batch_idx, len(train_loader), loss)
+                )
 
         with torch.set_grad_enabled(False):
-            print('Epoch: %03d/%03d training accuracy: %.2f%%' % (
-                  epoch+1, num_epochs,
-                  compute_accuracy(model, train_loader, device)))
+            print(
+                "Epoch: %03d/%03d training accuracy: %.2f%%"
+                % (epoch + 1, num_epochs, compute_accuracy(model, train_loader, device))
+            )
 
-        print('Time elapsed: %.2f min' % ((time.time() - start_time)/60))
+        print("Time elapsed: %.2f min" % ((time.time() - start_time) / 60))
 
-    print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
+    print("Total Training Time: %.2f min" % ((time.time() - start_time) / 60))
 
 
 class CustomLightningModule(L.LightningModule):
@@ -70,14 +72,20 @@ class CustomLightningModule(L.LightningModule):
         return self.model(input_ids, attention_mask=attention_mask, labels=labels)
 
     def training_step(self, batch, batch_idx):
-        outputs = self(batch["input_ids"], attention_mask=batch["attention_mask"],
-                       labels=batch["label"])
+        outputs = self(
+            batch["input_ids"],
+            attention_mask=batch["attention_mask"],
+            labels=batch["label"],
+        )
         self.log("train_loss", outputs["loss"])
         return outputs["loss"]  # this is passed to the optimizer for training
 
     def validation_step(self, batch, batch_idx):
-        outputs = self(batch["input_ids"], attention_mask=batch["attention_mask"],
-                       labels=batch["label"])
+        outputs = self(
+            batch["input_ids"],
+            attention_mask=batch["attention_mask"],
+            labels=batch["label"],
+        )
         self.log("val_loss", outputs["loss"], prog_bar=True)
 
         logits = outputs["logits"]
@@ -86,8 +94,11 @@ class CustomLightningModule(L.LightningModule):
         self.log("val_acc", self.val_acc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
-        outputs = self(batch["input_ids"], attention_mask=batch["attention_mask"],
-                       labels=batch["label"])
+        outputs = self(
+            batch["input_ids"],
+            attention_mask=batch["attention_mask"],
+            labels=batch["label"],
+        )
 
         logits = outputs["logits"]
         predicted_labels = torch.argmax(logits, 1)

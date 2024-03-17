@@ -14,6 +14,10 @@ transformers = "^4.38.2"
 tqdm = "^4.66.2"
 datasets = "^2.18.0"
 pytorch-lightning = "^2.2.1"
+accelerate = "^0.28.0"
+scikit-learn = "^1.4.1.post1"
+plotly = "^5.20.0"
+peft = "^0.9.0"
 
 
 [build-system]

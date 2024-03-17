@@ -4,6 +4,7 @@ import sys
 import tarfile
 import time
 
+import torch
 from datasets import load_dataset
 import numpy as np
 import pandas as pd
@@ -21,7 +22,7 @@ def reporthook(count, block_size, total_size):
         return
     duration = time.time() - start_time
     progress_size = int(count * block_size)
-    speed = progress_size / (1024.0**2 * duration)
+    speed = progress_size / (1024.0 ** 2 * duration)
     percent = count * block_size * 100.0 / total_size
 
     sys.stdout.write(
@@ -59,7 +60,9 @@ def load_dataset_into_to_dataframe():
             for l in ("pos", "neg"):
                 path = os.path.join(basepath, s, l)
                 for file in sorted(os.listdir(path)):
-                    with open(os.path.join(path, file), "r", encoding="utf-8") as infile:
+                    with open(
+                        os.path.join(path, file), "r", encoding="utf-8"
+                    ) as infile:
                         txt = infile.read()
 
                     if version.parse(pd.__version__) >= version.parse("1.3.2"):
@@ -96,15 +99,41 @@ def partition_dataset(df):
     df_test.to_csv(op.join("data", "test.csv"), index=False, encoding="utf-8")
 
 
-class IMDBDataset(Dataset):
-    def __init__(self, dataset_dict, partition_key="train"):
-        self.partition = dataset_dict[partition_key]
 
-    def __getitem__(self, index):
-        return self.partition[index]
+class IMDBDataset(Dataset):
+    def __init__(self, data, tokenizer, max_length=512):
+        self.tokenizer = tokenizer
+        self.data = data
+        self.max_length = max_length
 
     def __len__(self):
-        return self.partition.num_rows
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        row = self.data[idx]
+        text = row["text"]
+        label = row["label"]
+        inputs = self.tokenizer.encode_plus(
+            text,
+            None,
+            add_special_tokens=True,
+            max_length=self.max_length,
+            padding="max_length",
+            return_token_type_ids=False,
+            truncation=True,
+            return_attention_mask=True,
+            return_tensors="pt",
+        )
+        input_ids = inputs["input_ids"].squeeze()
+        attention_mask = inputs["attention_mask"].squeeze()
+
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "labels": torch.tensor(label, dtype=torch.long),
+        }
+
+
 
 
 def get_dataset():
@@ -153,19 +182,8 @@ def setup_dataloaders(imdb_tokenized):
     test_dataset = IMDBDataset(imdb_tokenized, partition_key="test")
 
     train_loader = DataLoader(
-        dataset=train_dataset,
-        batch_size=12,
-        shuffle=True,
-        num_workers=4
+        dataset=train_dataset, batch_size=12, shuffle=True, num_workers=4
     )
-    val_loader = DataLoader(
-        dataset=val_dataset,
-        batch_size=12,
-        num_workers=4
-    )
-    test_loader = DataLoader(
-        dataset=test_dataset,
-        batch_size=12,
-        num_workers=4
-    )
+    val_loader = DataLoader(dataset=val_dataset, batch_size=12, num_workers=4)
+    test_loader = DataLoader(dataset=test_dataset, batch_size=12, num_workers=4)
     return train_loader, val_loader, test_loader
